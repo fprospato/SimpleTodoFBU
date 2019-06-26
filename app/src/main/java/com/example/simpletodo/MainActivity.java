@@ -1,5 +1,6 @@
 package com.example.simpletodo;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.apache.commons.io.FileUtils;
@@ -20,6 +22,15 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    //constants
+    public final static int EDIT_REQUEST_CODE = 20; //numeric code to identify the edit activity
+
+    //keys for passing the data
+    public final static String ITEM_TEXT = "itemText";
+    public final static String ITEM_POSITION = "itemPosition";
+
+
+    //variables
     ArrayList<String> items; //for the model
     ArrayAdapter<String> itemsAdapter; //wires the model list to the view
     ListView lvItems; //instance of the list view
@@ -36,15 +47,27 @@ public class MainActivity extends AppCompatActivity {
         lvItems = (ListView) findViewById(R.id.lvitems);
         lvItems.setAdapter(itemsAdapter); //wire to the list view
 
-        //fake data
-//        items.add("item 1");
-//        items.add("item 2");
-//        items.add("item 3");
-
         //set long press
         setupListViewListener();
     }
 
+    //handle results from edit activity
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        //check if activity is ok
+        if (resultCode == RESULT_OK && requestCode == EDIT_REQUEST_CODE) {
+            String updatedItem = data.getExtras().getString(ITEM_TEXT);
+            int position = data.getExtras().getInt(ITEM_POSITION);
+            items.set(position, updatedItem);
+            itemsAdapter.notifyDataSetChanged();
+            writeItems();
+            Toast.makeText(this, "Item updated success", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     //add item to list
     public void onAddItem(View v) {
@@ -81,6 +104,22 @@ public class MainActivity extends AppCompatActivity {
                 writeItems();
 
                 return true;
+            }
+        });
+
+        //set up item listener for edit (regualr click)
+        lvItems.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                // create new activity
+                Intent intent = new Intent(MainActivity.this, EditItemActivity.class);
+
+                //pass data
+                intent.putExtra(ITEM_TEXT, items.get(i));
+                intent.putExtra(ITEM_POSITION, i);
+
+                //display activity to user
+                startActivityForResult(intent, EDIT_REQUEST_CODE);
             }
         });
     }
